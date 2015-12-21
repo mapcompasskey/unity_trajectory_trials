@@ -1,12 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class BallB : MonoBehaviour {
+public class BallG : MonoBehaviour {
 	
 	// public variables
-	public float moveSpeed = 30f;
+	public float moveSpeed = 5f;
 	public float jumpSpeed = 15f;
-	public float angle = 80f;
 	public float killTime = 4f;
 	public Vector3 origin = Vector3.zero;
 	
@@ -15,46 +14,48 @@ public class BallB : MonoBehaviour {
 	
 	// booleans
 	private bool jumpButtonState = true;
+
+	// floats
+	private float timeElapsed = 0f;
+	Quaternion rotation = Quaternion.identity;
 	
 	void Start()
 	{
 		rb2d = GetComponent<Rigidbody2D>();
-		rb2d.gravityScale = 0;
 		rb2d.drag = 0f;
 		rb2d.angularDrag = 0f;
+		rb2d.gravityScale = 0f;
 		rb2d.constraints = RigidbodyConstraints2D.FreezeRotation;
-		
+
 		Simulate();
 		Destroy(gameObject, killTime);
 	}
-	
-	void ApplyGravity()
-	{
-		float gravity = -9.81f;
 
+	void GetRotation()
+	{
 		Vector2 targetDir = (transform.position - origin).normalized;
 		float degrees = Mathf.Atan2(targetDir.y, targetDir.x) * Mathf.Rad2Deg - 90;
-		transform.rotation = Quaternion.AngleAxis(degrees, transform.forward);
-		
-		rb2d.AddForce(targetDir * gravity);
+		rotation = Quaternion.Euler(0, 0, degrees);
 	}
 	
 	void FixedUpdate()
 	{
-		ApplyGravity();
-		
-		Vector3 horizontalVelocity = transform.right * Mathf.Cos(angle * Mathf.Deg2Rad) * moveSpeed;
-		
-		float velocityY = transform.InverseTransformDirection(rb2d.velocity).y;
-		Vector3 verticalVelocity = transform.up * velocityY;
+		GetRotation();
+
+		Vector3 horizontalVelocity = transform.right * moveSpeed;
+
+		float gravity = -9.81f;
+		timeElapsed += Time.fixedDeltaTime;
+
+		Vector3 verticalVelocity = transform.up * (jumpSpeed + (gravity * timeElapsed));
 
 		if (jumpButtonState)
 		{
 			jumpButtonState = false;
-			verticalVelocity = transform.up * Mathf.Sin(angle * Mathf.Deg2Rad) * jumpSpeed;
+			verticalVelocity = (rotation * transform.up) * jumpSpeed;
 		}
-		
-		rb2d.velocity = horizontalVelocity + verticalVelocity;
+
+		rb2d.velocity = rotation * (horizontalVelocity + verticalVelocity);
 	}
 	
 	void OnCollisionEnter2D(Collision2D other)
@@ -62,6 +63,7 @@ public class BallB : MonoBehaviour {
 		if (other.gameObject.tag == "Ground")
 		{
 			jumpButtonState = true;
+			timeElapsed = 0f;
 			jumpSpeed = jumpSpeed * 0.5f;
 		}
 	}
@@ -69,12 +71,12 @@ public class BallB : MonoBehaviour {
 	void Simulate()
 	{
 		// create (and destroy) an empty gameobject
-		GameObject simuation = new GameObject("Simulation B");
+		GameObject simuation = new GameObject("Simulation G");
 		simuation.transform.position = transform.position;
 		Destroy(simuation, killTime);
 		
 		// populate an array with gameobjects containing a sprite
-		GameObject[] points = new GameObject[35];
+		GameObject[] points = new GameObject[600];
 		for (int i = 0; i < points.Length; i++)
 		{
 			points[i] = new GameObject("dot");
@@ -83,28 +85,45 @@ public class BallB : MonoBehaviour {
 			points[i].transform.parent = simuation.transform;
 		}
 		
-		float time = 0.09f;
+		float time = 0.005f;
 		float gravity = -9.81f;
 		Quaternion rotation = Quaternion.identity;
 		Vector3 position = simuation.transform.position;
 		Vector3 horzVelocity = Vector3.zero;
-		Vector3 vertVelocity = transform.up * Mathf.Sin(angle * Mathf.Deg2Rad) * jumpSpeed;
+		Vector3 vertVelocity = Vector3.zero;
+		
+		float timePassed = 0f;
 		
 		for (int i = 0; i < points.Length; i++)
 		{
+			/*
+			timePassed += time;
 			points[i].transform.position = position;
-			points[i].transform.rotation = rotation;
-
+			
 			Vector2 targetDir = (position - origin).normalized;
 			float degrees = Mathf.Atan2(targetDir.y, targetDir.x) * Mathf.Rad2Deg - 90;
 			points[i].transform.rotation = Quaternion.AngleAxis(degrees, points[i].transform.forward);
-
-			horzVelocity = points[i].transform.right * Mathf.Cos(angle * Mathf.Deg2Rad) * moveSpeed;
-			vertVelocity = points[i].transform.up * (jumpSpeed + (gravity * time * i));
+			
+			horzVelocity = points[i].transform.right * moveSpeed2;
+			vertVelocity = points[i].transform.up * (jumpSpeed2 + (gravity * timePassed));
 			points[i].transform.position += (horzVelocity + vertVelocity) * time;
 			
 			position = points[i].transform.position;
-			rotation = points[i].transform.rotation;
+			*/
+
+			timePassed += time;
+			points[i].transform.position = position;
+
+			Vector2 targetDir = (position - origin).normalized;
+			float degrees = Mathf.Atan2(targetDir.y, targetDir.x) * Mathf.Rad2Deg - 90;
+			rotation = Quaternion.Euler(0, 0, degrees);
+
+			horzVelocity = points[i].transform.right * moveSpeed;
+			vertVelocity = points[i].transform.up * (jumpSpeed + (gravity * timePassed));
+
+			points[i].transform.position += rotation * (horzVelocity + vertVelocity) * time;
+
+			position = points[i].transform.position;
 		}
 		
 	}

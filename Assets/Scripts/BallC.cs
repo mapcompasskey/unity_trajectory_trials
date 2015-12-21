@@ -15,7 +15,7 @@ public class BallC : MonoBehaviour {
 	
 	// booleans
 	private bool jumpButtonState = true;
-	
+
 	void Start()
 	{
 		rb2d = GetComponent<Rigidbody2D>();
@@ -43,7 +43,7 @@ public class BallC : MonoBehaviour {
 		
 		float velocityY = transform.InverseTransformDirection(rb2d.velocity).y;
 		Vector3 verticalVelocity = transform.up * velocityY;
-		
+
 		if (jumpButtonState)
 		{
 			jumpButtonState = false;
